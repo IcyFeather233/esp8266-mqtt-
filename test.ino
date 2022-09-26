@@ -1,19 +1,19 @@
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 #include <PubSubClient.h>
 
 // Update these with values suitable for your network.
 
-const char* ssid = "";
-const char* password = "";
-const char* mqttServer = "";
+const char* ssid = "xx";
+const char* password = "xxxx";
+const char* mqttServer = "xx";
 const int mqttPort = 1883;
 
-const char* lightTopic = "lightTopic";
+const char* lightTopic = "zhimakaimen";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-int lightPin = D4;
+int lightPin = 4;
 
 void setup_wifi() {
 
@@ -35,22 +35,42 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.println(topic);
-  String command = "";
+void callback(char* topic, byte* message, unsigned int length) {
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+  String messageTemp;
+  
   for (int i = 0; i < length; i++) {
-    command += (char)payload[i];
+    Serial.print((char)message[i]);
+    messageTemp += (char)message[i];
   }
-  Serial.println(command);
-  handlePayload(String(topic), command); 
+  Serial.println();
+
+  // Feel free to add more if statements to control more GPIOs with MQTT
+
+  // If a message is received on the topic esp32/output, you check if the message is either "on" or "off". 
+  // Changes the output state according to the message
+  if (String(topic) == "zhimakaimen") {
+    Serial.print("Changing output to ");
+    if(messageTemp == "on"){
+      Serial.println("on");
+      // digitalWrite(ledPin, HIGH);
+    }
+    else if(messageTemp == "off"){
+      Serial.println("off");
+      // digitalWrite(ledPin, LOW);
+    }
+  }
 }
+
 
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     //详细参数说明请查看文档
-    if (client.connect("ESP8266 Client"))
+    if (client.connect("ESP32 Client"))
     {
       Serial.println("connected");
       client.subscribe(lightTopic, 1);
@@ -66,7 +86,6 @@ void reconnect() {
 }
 
 void setup() {
-  pinMode(BUILTIN_LED, OUTPUT);     // Initialize the BUILTIN_LED pin as an output
   Serial.begin(115200);
   setup_wifi();
   client.setServer(mqttServer, mqttPort);
@@ -80,16 +99,3 @@ void loop() {
   }
   client.loop();
 }
-
-//处理命令
-String handlePayload(String topic, String payload) {
-  if (String(lightTopic).equals(topic)) {
-    //light command
-    if (String("lightOn").equals(payload)) {
-      digitalWrite(lightPin, HIGH);
-    } else if (String("lightOff").equals(payload)) {
-      digitalWrite(lightPin, LOW);
-    } 
-  }
-}
-
